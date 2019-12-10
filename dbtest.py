@@ -5,6 +5,8 @@
 import pyodbc
 import pdb
 import glob
+import sqlite3
+import datetime
 
 def main():
     open_database() 
@@ -26,7 +28,9 @@ def open_database():
     for table in tables:
 
         # This sucks but I can't seem to pass a param to execute?
-        cur.execute("SELECT TOP 1 * FROM [" + table + "]")
+        cur.execute("SELECT COUNT(*) FROM [" + table + "]")
+        rowcount = cur.fetchone()[0]
+        cur.execute("SELECT TOP 1 *  FROM [" + table + "]")
 
         # Tuple containing:
             # column name (or alias, if specified in the SQL)
@@ -38,8 +42,26 @@ def open_database():
             # nullable (True/False)
 
         table_desc = cur.description
+        print(table.replace(comp_directory + "/", "").replace(".ADT", ""), end=" ")
+        print(rowcount)
 
-        pdb.set_trace()
+        for column in table_desc:
+            print("\t" + column[0], end=" ")
+            if column[1] == type(""):
+                print("string")
+            elif column[1] == type(False):
+                print("bool")
+            elif column[1] == type(0.0):
+                print("float")
+            elif column[1] == datetime.date:
+                print("datetime.date")
+            elif column[1] == type(0):
+                print("int")
+            elif column[1] == type(bytearray()):
+                print("bytearray")
+
+            else:
+                pdb.set_trace()
 
     return
 
