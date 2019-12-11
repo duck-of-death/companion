@@ -74,13 +74,14 @@ int main(int argc, char **argv)
 	ulRetCode = AdsOpenTable101(hCon, argv[1], &hTable);
 	err_check(ulRetCode);
 
+	printf("TABLE:%s:", argv[1]);
 	ulRetCode = AdsGetNumFields(hTable, &usNumFields);
 	err_check(ulRetCode);
-	printf("Number of fields: %d\n", usNumFields);	
+	printf("F:%d:", usNumFields);	
 
 	ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
 	err_check(ulRetCode);
-	printf("Number of records: %d\n", ulNumRecords);
+	printf("R:%d\n", ulNumRecords);
 
 	aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
 
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
 		usLength = 128;
 		ulRetCode = AdsGetFieldName(hTable, usFieldNum, aucFieldName, &usLength); 
 		err_check(ulRetCode);
-		printf("FIELD:%s:", aucFieldName);
+		printf("\tFIELD:%s:", aucFieldName);
 		
 		ulRetCode = AdsGetFieldType(hTable, aucFieldName, &usFieldType);
 		err_check(ulRetCode);
