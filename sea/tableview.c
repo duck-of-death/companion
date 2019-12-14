@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <dirent.h>
 #include "ace.h"
 
 void err_check(UNSIGNED32 ulRetCode)
@@ -62,12 +63,26 @@ int main(int argc, char **argv)
 	UNSIGNED32 ulNumRecords;
 	UNSIGNED32 ulRetCode;
 
+    DIR *compdir;
+    struct dirent *dirlist;
+
 	if (argc != 2)
 	{
-		fprintf(stderr, "Error: ADT filename argument\n");
+		fprintf(stderr, "Error: Missing COMP ADT directory\n");
 		exit(1);
 	}
+    else
+    {
+        directory = opendir(argv[1]);
+        if (directory == NULL)
+        {
+            fprintf(stderr, "Error: opendir() failed on %s\n". argv[1]);
+            exit(1);
+        }
 
+    }
+
+    // Making a free connection
 	ulRetCode = AdsConnect101("Data Source=/home/john/Comp4win/; TableType=ADT; CharType=OEM; LockMode=Compatible;", NULL, &hCon);
 	err_check(ulRetCode);
 
