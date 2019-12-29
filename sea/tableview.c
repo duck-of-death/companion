@@ -5,6 +5,7 @@
 #include <string.h>
 #include "ace.h"
 
+// Check for errors from libace functions
 void err_check(UNSIGNED32 ulRetCode)
 {
 	if (ulRetCode != AE_SUCCESS)
@@ -14,6 +15,7 @@ void err_check(UNSIGNED32 ulRetCode)
 	}
 }
 
+// Print the closest SQLite datatype for a given ADS type
 void type_check(UNSIGNED16 usFieldType)
 {
 	if (usFieldType == ADS_STRING)
@@ -63,6 +65,22 @@ void type_check(UNSIGNED16 usFieldType)
 	}
 }
 
+void cleanbuf(UNSIGNED8 *buffer)
+{
+	int i = 0;
+
+	while (buffer[i] != '\0')
+	{
+		if (buffer[i] == 0x22)
+		{
+			// fprintf(stderr, "Found \", replacing with \'\n");
+			buffer[i] = 0x27;
+		}
+
+		i++;
+	}
+}
+
 int main(int argc, char **argv)
 {
 	ADSHANDLE hCon;
@@ -78,6 +96,7 @@ int main(int argc, char **argv)
 	UNSIGNED32 ulRetCode;
 	UNSIGNED32 ulRecSize;
 	UNSIGNED32 pulLength;
+	UNSIGNED32 ulRecNum;
 
 	DIR *compdir;
 	struct dirent *dirlist;
@@ -109,9 +128,12 @@ int main(int argc, char **argv)
 	// Directory stuff needs to go here
 	while ((dirlist = readdir(compdir)) != NULL)
 	{
+		// File name length has to be more than 4 to be checked if it
+		// ends in ".ADT"
 		filenameLen = strlen(dirlist->d_name);
 		if (filenameLen > 4)
 		{
+			// Does the filename end in ADT?
 			if (strncmp(dirlist->d_name + (filenameLen - 4), ".ADT", filenameLen) == 0)
 			{
 				ulRetCode = AdsOpenTable101(hCon, dirlist->d_name, &hTable);
@@ -126,10 +148,12 @@ int main(int argc, char **argv)
 				ulRetCode = AdsGetNumFields(hTable, &usNumFields);
 				err_check(ulRetCode);
 
-				aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
+				// Max field length is 128 characters
 
 				for (usFieldNum = 1; usFieldNum <= usNumFields; usFieldNum++)
 				{
+					aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
+
 					// Fields start at 1
 					if (usFieldNum != 1)
 					{
@@ -143,32 +167,53 @@ int main(int argc, char **argv)
 					ulRetCode = AdsGetFieldType(hTable, aucFieldName, &usFieldType);
 					err_check(ulRetCode);
 					type_check(usFieldType);
+
+					free(aucFieldName);
 				}
 				printf(");\n");
 
-				// Record Stuff... 
-				// Probably could combine with for loop above and call a function and use asprintf
 
 				ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
 				err_check(ulRetCode);
 
 				if (ulNumRecords >= 1)
 				{
-					AdsGotoRecord(hTable, 1);
+					for (ulRecNum = 1; ulRecNum <= ulNumRecords; ulRecNum++)
+					{
+						printf("INSERT INTO %s VALUES (", tblName);
 
-					ulRetCode = AdsGetFieldLength(hTable, aucFieldName, &pulLength);
-					err_check(ulRetCode);
+						AdsGotoRecord(hTable, ulRecNum);
 
-					printf("%s = len(%d)\n", aucFieldName, pulLength);
+						for (usFieldNum = 1; usFieldNum <= usNumFields; usFieldNum++)
+						{
 
-					pulLength =+ 512;
-					ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_TRIM);
-					err_check(ulRetCode);
+							if (usFieldNum != 1)
+							{
+								printf(", ");
+							}
 
-					printf("\"%s\"\n", pucBuf);
-				}
+							aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
+							usLength = 128;
 
-				free(aucFieldName);
+							ulRetCode = AdsGetFieldName(hTable, usFieldNum, aucFieldName, &usLength);
+							err_check(ulRetCode);
+
+							// 1K was too small, but 4K works
+							pulLength = 4096;
+
+							ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_TRIM);
+							err_check(ulRetCode);
+
+							cleanbuf(pucBuf);
+
+							printf("\"%s\"", pucBuf);
+
+							free(aucFieldName);
+						}
+
+						printf(");\n");
+					}
+
 
 				ulRetCode = AdsCloseTable(hTable);
 				err_check(ulRetCode);
@@ -176,6 +221,7 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	}	
 
 	ulRetCode = AdsDisconnect(hCon);
 	err_check(ulRetCode);
