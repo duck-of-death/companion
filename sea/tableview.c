@@ -18,35 +18,44 @@ void type_check(UNSIGNED16 usFieldType)
 {
 	if (usFieldType == ADS_STRING)
 	{
-		printf("Character data\n");
+		//printf("Character data\n");
+		printf("TEXT");
 	}	
 	else if (usFieldType == ADS_DATE)
 	{
-		printf("Date field. 4 byte Julian date\n");
+		// printf("Date field. 4 byte Julian date\n");
+		printf("TEXT");
+
 	}
 	else if (usFieldType == ADS_LOGICAL)
 	{
-		printf("1 byte logical value\n"); 
+		//printf("1 byte logical value\n"); 
+		printf("NUMERIC");
 	}
 	else if (usFieldType == ADS_SHORTINT)
 	{
-		printf("IEEE 2 byte signed short integer\n");
+		//printf("IEEE 2 byte signed short integer\n");
+		printf("INTEGER");
 	}
 	else if (usFieldType == ADS_MEMO)
 	{
-		printf("Variable length character field\n");
+		//printf("Variable length character field\n");
+		printf("TEXT");
 	}
 	else if (usFieldType == ADS_DOUBLE)
 	{
-		printf("IEEE 8 byte floating point\n");
+		//printf("IEEE 8 byte floating point\n");
+		printf("REAL");
 	}
 	else if (usFieldType == ADS_INTEGER)
 	{
-		printf("IEEE 4 byte long integer\n");
+		//printf("IEEE 4 byte long integer\n");
+		printf("INTEGER");
 	}
 	else if (usFieldType == ADS_IMAGE)
 	{
-		printf("BLOB - bitmap\n");
+		//printf("BLOB - bitmap\n");
+		printf("BLOB");
 	}
 	else
 	{
@@ -59,16 +68,21 @@ int main(int argc, char **argv)
 	ADSHANDLE hCon;
 	ADSHANDLE hTable;
 	UNSIGNED8 *aucFieldName;
+	UNSIGNED8 *pucTempRecord; 
+	UNSIGNED8 *pucBuf;
 	UNSIGNED16 usNumFields;
 	UNSIGNED16 usFieldNum;
 	UNSIGNED16 usLength;
 	UNSIGNED16 usFieldType;
 	UNSIGNED32 ulNumRecords;
 	UNSIGNED32 ulRetCode;
+	UNSIGNED32 ulRecSize;
+	UNSIGNED32 pulLength;
 
 	DIR *compdir;
 	struct dirent *dirlist;
 	char *connStr;
+	char *tblName;
 	size_t filenameLen;
 
 	if (argc != 2)
@@ -86,7 +100,7 @@ int main(int argc, char **argv)
             		exit(1);
         	}
 	}
-	printf("Connection string: %s\n", connStr);
+	// printf("Connection string: %s\n", connStr);
 
 	// Making a free connection
 	ulRetCode = AdsConnect101(connStr, NULL, &hCon);
@@ -103,35 +117,69 @@ int main(int argc, char **argv)
 				ulRetCode = AdsOpenTable101(hCon, dirlist->d_name, &hTable);
 				err_check(ulRetCode);
 
-				printf("TABLE:%s:", dirlist->d_name);
+				tblName = malloc((filenameLen - 3) * sizeof(char));
+				strncpy(tblName, dirlist->d_name, (filenameLen - 3));
+				tblName[filenameLen - 4] = '\0';
+
+				printf("CREATE TABLE %s(", tblName);
+
 				ulRetCode = AdsGetNumFields(hTable, &usNumFields);
 				err_check(ulRetCode);
-				printf("F:%d:", usNumFields);	
-
-				ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
-				err_check(ulRetCode);
-				printf("R:%d\n", ulNumRecords);
 
 				aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
 
 				for (usFieldNum = 1; usFieldNum <= usNumFields; usFieldNum++)
 				{
 					// Fields start at 1
+					if (usFieldNum != 1)
+					{
+						printf(", ");
+					}
 					usLength = 128;
 					ulRetCode = AdsGetFieldName(hTable, usFieldNum, aucFieldName, &usLength); 
 					err_check(ulRetCode);
-					printf("\tFIELD:%s:", aucFieldName);
+					printf("\"%s\" ", aucFieldName);
 					
 					ulRetCode = AdsGetFieldType(hTable, aucFieldName, &usFieldType);
 					err_check(ulRetCode);
 					type_check(usFieldType);
 				}
+				printf(");\n");
+
+				// Record Stuff...
+				// UNSIGNED32 AdsGetField (ADSHANDLE hTable,
+				//              	   UNSIGNED8 *pucFldName,
+				//                         UNSIGNED8 *pucBuf,
+				//                         UNSIGNED32 *pulLen,
+				//                         UNSIGNED16 usOption);
+
+				ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
+				err_check(ulRetCode);
+
+				AdsGotoRecord(hTable, 1);
+
+				ulRetCode = AdsGetFieldLength(hTable, aucFieldName, &pulLength);
+				err_check(ulRetCode);
+
+				printf("%s = len(%d)\n", aucFieldName, pulLength);
+
+				ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_NONE);
+				err_check(ulRetCode);
+
+				printf("\"%s\"\n", pucBuf);
 
 				free(aucFieldName);
+
+				ulRetCode = AdsCloseTable(hTable);
+				err_check(ulRetCode);
+				free(tblName);
 			}
 		}
 	}
-	
+
+	ulRetCode = AdsDisconnect(hCon);
+	err_check(ulRetCode);
+	free(compdir);	
 	free(connStr);
 	return 0;
 }
