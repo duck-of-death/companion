@@ -100,7 +100,6 @@ int main(int argc, char **argv)
 		{
 			if (strncmp(dirlist->d_name + (filenameLen - 4), ".ADT", filenameLen) == 0)
 			{
-				printf("d_name = %s\n", dirlist->d_name);
 				ulRetCode = AdsOpenTable101(hCon, dirlist->d_name, &hTable);
 				err_check(ulRetCode);
 
