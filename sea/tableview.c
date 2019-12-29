@@ -146,27 +146,27 @@ int main(int argc, char **argv)
 				}
 				printf(");\n");
 
-				// Record Stuff...
-				// UNSIGNED32 AdsGetField (ADSHANDLE hTable,
-				//              	   UNSIGNED8 *pucFldName,
-				//                         UNSIGNED8 *pucBuf,
-				//                         UNSIGNED32 *pulLen,
-				//                         UNSIGNED16 usOption);
+				// Record Stuff... 
+				// Probably could combine with for loop above and call a function and use asprintf
 
 				ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
 				err_check(ulRetCode);
 
-				AdsGotoRecord(hTable, 1);
+				if (ulNumRecords >= 1)
+				{
+					AdsGotoRecord(hTable, 1);
 
-				ulRetCode = AdsGetFieldLength(hTable, aucFieldName, &pulLength);
-				err_check(ulRetCode);
+					ulRetCode = AdsGetFieldLength(hTable, aucFieldName, &pulLength);
+					err_check(ulRetCode);
 
-				printf("%s = len(%d)\n", aucFieldName, pulLength);
+					printf("%s = len(%d)\n", aucFieldName, pulLength);
 
-				ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_NONE);
-				err_check(ulRetCode);
+					pulLength =+ 512;
+					ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_TRIM);
+					err_check(ulRetCode);
 
-				printf("\"%s\"\n", pucBuf);
+					printf("\"%s\"\n", pucBuf);
+				}
 
 				free(aucFieldName);
 
