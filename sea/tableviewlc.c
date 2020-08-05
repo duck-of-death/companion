@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 		if (filenameLen > 4)
 		{
 			// Does the filename end in ADT?
-			if (strncmp(dirlist->d_name + (filenameLen - 4), ".ADT", filenameLen) == 0)
+			if (strncmp(dirlist->d_name + (filenameLen - 4), ".adt", filenameLen) == 0)
 			{
 				ulRetCode = AdsOpenTable101(hCon, dirlist->d_name, &hTable);
 				err_check(ulRetCode);

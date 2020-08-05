@@ -136,7 +136,8 @@ int main(int argc, char **argv)
 		if (filenameLen > 4)
 		{
 			// Does the filename end in ADT?
-			if (strncmp(dirlist->d_name + (filenameLen - 4), ".ADT", filenameLen) == 0)
+			if (strncmp(dirlist->d_name + (filenameLen - 4), ".ADT", filenameLen) == 0 || 
+					strncmp(dirlist->d_name + (filenameLen - 4), ".adt", filenameLen) == 0)
 			{
 				ulRetCode = AdsOpenTable101(hCon, dirlist->d_name, &hTable);
 				err_check(ulRetCode);
@@ -175,54 +176,12 @@ int main(int argc, char **argv)
 				printf(");\n");
 
 
-				ulRetCode = AdsGetRecordCount(hTable, ADS_IGNOREFILTERS, &ulNumRecords);
-				err_check(ulRetCode);
-
-				if (ulNumRecords >= 1)
-				{
-					for (ulRecNum = 1; ulRecNum <= ulNumRecords; ulRecNum++)
-					{
-						printf("INSERT INTO %s VALUES (", tblName);
-
-						AdsGotoRecord(hTable, ulRecNum);
-
-						for (usFieldNum = 1; usFieldNum <= usNumFields; usFieldNum++)
-						{
-
-							if (usFieldNum != 1)
-							{
-								printf(", ");
-							}
-
-							aucFieldName = malloc(sizeof(UNSIGNED8) * 128);
-							usLength = 128;
-
-							ulRetCode = AdsGetFieldName(hTable, usFieldNum, aucFieldName, &usLength);
-							err_check(ulRetCode);
-
-							// 1K was too small, but 4K works
-							pulLength = 4096;
-
-							ulRetCode = AdsGetField(hTable, aucFieldName, pucBuf, &pulLength, ADS_TRIM);
-							err_check(ulRetCode);
-
-							cleanbuf(pucBuf);
-
-							printf("\"%s\"", pucBuf);
-
-							free(aucFieldName);
-						}
-
-						printf(");\n");
-					}
-
 
 				ulRetCode = AdsCloseTable(hTable);
 				err_check(ulRetCode);
 				free(tblName);
 			}
 		}
-	}
 	}	
 
 	printf("COMMIT;\n");
